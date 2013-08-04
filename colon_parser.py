@@ -49,6 +49,36 @@ func_lib.add_func("baz", baz_function)
 ###
 
 
+class ColonDict():
+    def __init__(self, colon_words):
+        self.dict = {}
+        for cw in colon_words:
+            self.dict[cw.name] = cw.traslate
+        
+    def traslate(self, name, uses, body):
+        return self.dict[name](uses, body)
+
+class ColonAtrbutes():
+    pass
+
+class ColonWord():
+    """Colon Word object.
+    Each :word found when parsing  must have a corispoding object in the library.
+    """
+    def __init__(self, name):
+        self.name = name
+    def traslate(self, uses, body):
+        return name, "<%s>"%self.name
+
+        return ("<%s"%self.name + "\n" 
+                   + self.doUses(uses) + "\n" 
+                   + body + "\n"
+                ,
+                "<%s>"%self.name)
+    def doUses(self, uses):
+        return str(["%s=%s\n"%(usesname,data) for usesname, data in uses])
+
+
 class ColonParser():
     """ parses speach code into colonWord (:word) chunks
     Each chunk will parse out data from each uses line
@@ -62,18 +92,20 @@ class ColonParser():
 
 
     """
-    def __init__(self, input_string):
-        self.composite_list = []
-        self.source_lines = input_string.split("\n")
+    def __init__(self, colon_library):
+        self.parsed_chunks = []
+        self.input_string = None
+        self.source_lines = None
         self.parse_index = 0
+        self.colon_library = colon_library
 
 
     def complete_parse(self):
-        """parse each block into self.composite_list"""
+        """parse each block into self.parsed_chunks"""
         traslated_code = ""
         next_chunk = self.get_next_colon_block()
         while next_chunk is not None:
-            self.composite_list.append(next_chunk)
+            self.parsed_chunks.append(next_chunk)
             beg, end  = next_chunk.traslate()
             mid = next_chunk.col_parser.complete_parse()
             next_chunk = self.get_next_colon_block()
@@ -82,15 +114,16 @@ class ColonParser():
 
     def get_next_colon_block(self):
         self.parse_text()
-        colon_block, rest = self.parse_colon_chunk()
+        colon_block, reminging_buffer = self.parse_colon_chunk()
         if bool(colon_block):
-            return ColonChunk(colon_block)
+            return ColonChunk(colon_block, self.colon_library)
         else:
             return None
         
     def parse_lines(self,):
         "generator, pops out each line at each call"
         #raise NotImplementedError()
+        if self.input_string is None: raise ValueError("Source String not inputed") #What error should go here?
         while self.parse_index < len(self.source_lines):
             yield self.parse_index, self.source_lines[self.parse_index] 
             self.parse_index += 1
@@ -98,8 +131,10 @@ class ColonParser():
 
     def reverse_parseing(self, i):
         "reverse the parsing by i lines"
+        if self.input_string is None: raise ValueError("Source String not inputed") #What error should go here?
         self.parse_index = max(0, self.parse_index -i)
         return self.parse_index
+
 
     def parse_text(self,):
         "Returns empty string or all lines before first indent level :block or lower"
@@ -162,6 +197,35 @@ class ColonParser():
             else: break
         return indent
 
+    def input(self, string):
+        """Input a new string into the parsing order
+        add recursive/stack input?
+        """
+        
+        self.input_string = string
+        self.source_lines = self.input_string.split("\n")
+        self.parsing_index = 0
+    
+    test_count = 0
+    def test(self, input_str, desired_output = None):
+        self.input(input_str)
+        result = self.complete_parse()
+        if result == desired_output:
+            print("Test: #%d passed"%test_count)
+        else:
+            if desired_output is not None:
+                print("Test: #%d did not match desired_output"%test_count)
+            else:
+                print("Test results:")
+            print("input: |%s|\n"%input_str)
+            #idea to do a zip for both result and desired_output
+            #printing lines 'side by side'
+            print("out_put: |%s|\n"%result)
+            if desired_output is not None: 
+                print("desired_result: |%s|\n"%desired_output)
+        
+                
+
 
 
 class ColonChunk():
@@ -172,16 +236,18 @@ class ColonChunk():
     2) parse all uses statments into a list of tuples 
         uses class:foo -> [(class,foo), ... ] 
     3) if change of indent call ColenParser on chunk"""
-
-    def __init__ (self, chunk_lines):
+    def __init__ (self, chunk_lines, colon_library):
         """ """
         self.name = self.parse_name(chunk_lines[0])
-        self.col_parser = ColonParser("\n".join(chunk_lines[1:]))
+        self.col_parser = ColonParser(colon_library)
+        self.col_parser.input("\n".join(chunk_lines[1:]))
         self.body, self.nests = self.col_parser.parse_text()
         self.uses, self.body = self.parse_uses(self.body)
     
     def traslate(self,):
-        return func_lib.traslate_code(self.name, "\n".join(self.body), self.uses)
+        return func_lib.traslate_code(self.name,
+                                      "\n".join(self.body),
+                                      self.uses)
         
 
     def parse_name(self, name_line):
@@ -192,7 +258,9 @@ class ColonChunk():
     def parse_uses(self, lines):
         uses = []
         for i, line in enumerate(lines):
+            if bool(line) == False: continue
             if line.split(None, 1)[0] == "uses":
+                print("line |%s|"%line) 
                 kwarg, val = line.split(None, 1)[1].split(":")
                 uses.append((kwarg, val))
                 #print(kwarg, val)
@@ -255,13 +323,23 @@ The foo is strong in this one
 uses dance:forever
 dance dance dance
 """
-cp
-if __name__ == '__main__':
-    print("testing string \n|%s|"%foo_input)
+
+def Colon_testing():
+    print("----------starting-colon-testing----------")
     print("")
-    cp = ColonParser(foo_input)
+    cp = ColonParser(ColonDict([ColonWord("foo")]))
+    cp.test(":foo")
+    
     # for i, l in  cp.parse_lines():
     #     print(i, "|%s|"%l)cp
     # print(":chunk |%s|%s"%cp.parse_text())
     # print(":chunk |%s|%s"%cp.parse_colon_chunk())
-    code = cp.complete_parse()
+
+
+def speed_test():
+    pass
+
+
+if __name__ == '__main__':
+    Colon_testing()
+
