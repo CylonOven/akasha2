@@ -1,0 +1,21 @@
+
+import random
+from colon_parser.py import *
+
+random.seed = 0
+def r_word(l = 4):
+    return "".join([random.choice(string.lowercase) for i in range(l)])
+
+def r_word_list(ll = 100, wl = 4):
+    l = []
+    while len(l) < ll:
+        w = r_word(wl)
+        if w not in l:
+            l.append()
+    return l
+
+
+    
+names  = r_word_list(100)
+colon_words = [ColonWord(name) for name in names]
+
