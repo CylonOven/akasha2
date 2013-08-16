@@ -8,7 +8,7 @@ class Func_lib():
     def add_func(self, key, func):
         self.fun_dict[key] = func
     
-    def traslate_code(self, colonName, body, uses):
+    def translate_code(self, colonName, body, uses):
         return self.fun_dict[colonName](body, dict(uses))
 
 ### Template traslation functions all 3 are basicly the same...
@@ -55,7 +55,7 @@ class ColonDict():
         for cw in colon_words:
             self.dict[cw.name] = cw.traslate
         
-    def traslate(self, name, uses, body):
+    def translate(self, name, uses, body):
         return self.dict[name](uses, body)
 
 class ColonAtrbutes():
@@ -63,7 +63,7 @@ class ColonAtrbutes():
 
 class ColonWord():
     """Colon Word object.
-    Each :word found when parsing  must have a corispoding object in the library.
+    Each :word found when parsing  must have a corresponding object in the library.
     """
     def __init__(self, name):
         self.name = name
@@ -80,15 +80,16 @@ class ColonWord():
 
 
 class ColonParser():
-    """ parses speach code into colonWord (:word) chunks
-    Each chunk will parse out data from each uses line
-    Each uses line ("uses foo:bar") will be given to the :word's pre-function as keyword arguments
+    """ parses speech code into colonWord (:word) chunks Each chunk
+    will parse out data from each uses line Each uses line ("uses
+    foo:bar") will be given to the :word's pre-function as keyword
+    arguments
 
-    nesting works thusly:
-       the pre-fuction of each :word will be called once the chunk is parsed,
-       if there are any :words nested inside the body of the :word
-       they will be parsed in turn,
-       after the whole body of the :word has been parsed will the post-function be called for that :word
+    nesting works thusly: the pre-fuction of each :word will be called
+    once the chunk is parsed, if there are any :words nested inside
+    the body of the :word they will be parsed in turn, after the
+    whole body of the :word has been parsed will the post-function
+    be called for that :word
 
 
     """
@@ -102,19 +103,19 @@ class ColonParser():
 
     def complete_parse(self):
         """parse each block into self.parsed_chunks"""
-        traslated_code = ""
+        translated_code = ""
         next_chunk = self.get_next_colon_block()
         while next_chunk is not None:
             self.parsed_chunks.append(next_chunk)
-            beg, end  = next_chunk.traslate()
+            beg, end  = next_chunk.translate()
             mid = next_chunk.col_parser.complete_parse()
             next_chunk = self.get_next_colon_block()
-            traslated_code += beg + mid + end
-        return traslated_code
+            translated_code += beg + mid + end
+        return translated_code
 
     def get_next_colon_block(self):
         self.parse_text()
-        colon_block, reminging_buffer = self.parse_colon_chunk()
+        colon_block, remainging_buffer = self.parse_colon_chunk()
         if bool(colon_block):
             return ColonChunk(colon_block, self.colon_library)
         else:
@@ -244,8 +245,8 @@ class ColonChunk():
         self.body, self.nests = self.col_parser.parse_text()
         self.uses, self.body = self.parse_uses(self.body)
     
-    def traslate(self,):
-        return func_lib.traslate_code(self.name,
+    def translate(self,):
+        return func_lib.translate_code(self.name,
                                       "\n".join(self.body),
                                       self.uses)
         
